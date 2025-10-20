@@ -1,0 +1,26 @@
+# DuckDB database files
+*.duckdb
+
+# dbt artifacts
+dbt_modules/
+dbt_packages/
+target/
+logs/
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv/
+.envrc
+*.sqlite3
+
+# Jupyter Notebooks
+notebooks/
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
