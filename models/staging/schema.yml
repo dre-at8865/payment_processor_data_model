@@ -1,0 +1,63 @@
+version: 2
+
+models:
+  - name: stg_customers
+    description: "Cleaned and standardized customer data from raw source"
+    columns:
+      - name: customer_id
+        description: "Unique identifier for customer"
+        tests:
+          - unique
+          - not_null
+      
+      - name: country_code
+        description: "Standardized country code (GBRR normalized to GBR)"
+        tests:
+          - not_null
+  
+  - name: stg_transactions
+    description: "Deduplicated transaction data with cleaned timestamps"
+    columns:
+      - name: transaction_id
+        description: "Unique identifier for transaction after deduplication"
+        tests:
+          - unique
+          - not_null
+      
+      - name: customer_id
+        description: "Reference to customer"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_id
+      
+      - name: transaction_amount
+        description: "Transaction amount in decimal format"
+        tests:
+          - not_null
+      
+      - name: transaction_datetime
+        description: "Transaction timestamp"
+        tests:
+          - not_null
+  
+  - name: stg_transaction_status_log
+    description: "Cleaned status log with normalized statuses and validated timestamps"
+    columns:
+      - name: transaction_id
+        description: "Reference to transaction"
+        tests:
+          - not_null
+      
+      - name: status
+        description: "Normalized status value (complete -> completed)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['approved', 'settled', 'completed', 'held', 'cancelled', 'failed', 'declined']
+      
+      - name: status_datetime
+        description: "Valid status change timestamp (corrupt dates filtered out)"
+        tests:
+          - not_null

@@ -1,0 +1,7 @@
+payment_processor:
+  outputs:
+    dev:
+      type: duckdb
+      path: './payment_processor.duckdb'
+      threads: 4
+  target: dev

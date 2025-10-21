@@ -1,26 +1,24 @@
 # DuckDB database files
 *.duckdb
+*.duckdb.wal
 
 # dbt artifacts
 dbt_modules/
 dbt_packages/
 target/
 logs/
+profiles.yml
+.user.yml
 
-# Python artifacts
+# Python
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-.env
 .venv/
-.envrc
-*.sqlite3
+.env
 
-# Jupyter Notebooks
-notebooks/
+# Jupyter
 .ipynb_checkpoints/
+*.ipynb
 
-# OS files
+# OS
 .DS_Store
-Thumbs.db

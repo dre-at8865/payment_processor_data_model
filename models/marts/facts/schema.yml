@@ -1,0 +1,52 @@
+version: 2
+
+models:
+  - name: fct_transaction_status
+    description: "Fact table capturing transaction status lifecycle with time-between-steps analytics"
+    columns:
+      - name: transaction_id
+        description: "Transaction identifier"
+        tests:
+          - not_null
+      
+      - name: date_key
+        description: "Foreign key to dim_date (date of status change)"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: date_key
+      
+      - name: customer_id
+        description: "Foreign key to dim_customer"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customer')
+              field: customer_id
+      
+      - name: status_name
+        description: "Foreign key to dim_status"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_status')
+              field: status_name
+      
+      - name: transaction_amount
+        description: "Transaction amount for aggregations"
+        tests:
+          - not_null
+      
+      - name: time_from_previous_status_sec
+        description: "Time elapsed from previous status in seconds (null for first status)"
+      
+      - name: status_datetime
+        description: "Timestamp of status event"
+        tests:
+          - not_null
+      
+      - name: row_num
+        description: "Row number for handling duplicate timestamps (ensures uniqueness)"
+        tests:
+          - not_null
