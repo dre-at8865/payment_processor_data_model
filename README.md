@@ -46,8 +46,8 @@ erDiagram
         boolean is_terminal_status
     }
 
-    fct_transaction_status }|--|| dim_customer : "belongs to"
-    fct_transaction_status }|--|| dim_status : "has"
+    fct_transaction_status }|--|| dim_customer
+    fct_transaction_status }|--|| dim_status
 ```
 
 ### 1.3 Discussion Points
