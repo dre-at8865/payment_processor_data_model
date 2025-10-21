@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: fct_transaction_status
-    description: "Fact table capturing transaction status lifecycle"
+    description: "Fact table capturing transaction status lifecycle with composite primary key (transaction_id, status_name)"
     columns:
       - name: transaction_id
         description: "Transaction identifier"

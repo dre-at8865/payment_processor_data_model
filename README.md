@@ -9,6 +9,8 @@ Star Schema centered on transaction status events. This model is ideal for high-
 #### fct_transaction_status (Fact)
 **Grain:** One row per transaction status change (e.g., one row for 'approved', another for 'settled' for the same transaction).
 
+**Primary Key:** Composite key (transaction_id, status_name) - each transaction can have multiple status events.
+
 **Purpose:** Captures the complete lifecycle of a transaction, enabling analysis of status progressions and conversion funnels.
 
 **Key Columns:** transaction_id, date_key, customer_id (FK), status_name (FK), transaction_amount, status_datetime.
@@ -28,10 +30,10 @@ Star Schema centered on transaction status events. This model is ideal for high-
 ```mermaid
 erDiagram
     fct_transaction_status {
-        string transaction_id
+        string transaction_id PK
+        string status_name PK
         date date_key
         string customer_id FK
-        string status_name FK
         decimal transaction_amount
         timestamp status_datetime
     }
@@ -50,7 +52,7 @@ erDiagram
 
 ### 1.3 Discussion Points
 
-My EDA uncovered several critical data quality issues that must be resolved during transformation:
+EDA uncovered several critical data quality issues that must be resolved during transformation:
 
 **Data Quality Issues:**
 
@@ -98,6 +100,7 @@ payment_processor_ae/
 │       ├── dimensions/   # Dimension tables (2 tables)
 │       ├── facts/        # Fact table (1 table)
 │       └── metrics/      # Business metrics (3 tables)
+├── tests/                # Singular tests (1 test)
 ├── seeds/                # Source CSV data
 ├── notebooks/            # EDA
 ├── dbt_project.yml
