@@ -16,12 +16,11 @@ models:
           - not_null
   
   - name: stg_transactions
-    description: "Deduplicated transaction data with cleaned timestamps"
+    description: "Cleaned transaction data with standardized types (may contain duplicates)"
     columns:
       - name: transaction_id
-        description: "Unique identifier for transaction after deduplication"
+        description: "Transaction identifier (not unique in staging - see int_transactions_deduplicated)"
         tests:
-          - unique
           - not_null
       
       - name: customer_id

@@ -28,27 +28,3 @@ models:
         description: "Boolean indicating if status is terminal (completed, cancelled, failed, declined)"
         tests:
           - not_null
-  
-  - name: dim_date
-    description: "Date dimension for time-based analysis"
-    columns:
-      - name: date_key
-        description: "Primary key - date value"
-        tests:
-          - unique
-          - not_null
-      
-      - name: year
-        description: "Year extracted from date"
-        tests:
-          - not_null
-      
-      - name: month
-        description: "Month extracted from date"
-        tests:
-          - not_null
-      
-      - name: day_of_week
-        description: "Day of week name"
-        tests:
-          - not_null

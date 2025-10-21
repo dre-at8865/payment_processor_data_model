@@ -9,9 +9,9 @@ Star Schema centered on transaction status events. This model is ideal for high-
 #### fct_transaction_status (Fact)
 **Grain:** One row per transaction status change (e.g., one row for 'approved', another for 'settled' for the same transaction).
 
-**Purpose:** Captures the complete lifecycle of a transaction, enabling analysis of time-between-steps and conversion funnels.
+**Purpose:** Captures the complete lifecycle of a transaction, enabling analysis of status progressions and conversion funnels.
 
-**Key Columns:** transaction_id, date_key (FK), customer_id (FK), status_name (FK), transaction_amount, time_from_previous_status_sec, status_datetime, row_num.
+**Key Columns:** transaction_id, date_key, customer_id (FK), status_name (FK), transaction_amount, status_datetime.
 
 #### dim_customer (Dimension)
 **Grain:** One row per customer.
@@ -23,30 +23,21 @@ Star Schema centered on transaction status events. This model is ideal for high-
 
 **Key Columns:** status_name (PK), is_terminal_status (Boolean).
 
-#### dim_date (Dimension)
-**Grain:** One row per day.
-
-**Key Columns:** date_key (PK - date value), year, month, day, day_of_week, quarter.
-
 ### 1.2 Schema Diagram
 
 ```mermaid
 erDiagram
     fct_transaction_status {
         string transaction_id
-        date date_key FK
+        date date_key
         string customer_id FK
         string status_name FK
         decimal transaction_amount
-        int time_from_previous_status_sec
         timestamp status_datetime
-        int row_num
     }
-    dim_date { date date_key PK }
     dim_customer { string customer_id PK }
     dim_status { string status_name PK }
 
-    fct_transaction_status }|--|| dim_date : "belongs to"
     fct_transaction_status }|--|| dim_customer : "belongs to"
     fct_transaction_status }|--|| dim_status : "has"
 ```
@@ -57,21 +48,34 @@ My EDA uncovered several critical data quality issues that must be resolved duri
 
 **Data Quality Issues:**
 
-- **Duplicate Transaction Headers:** transactions has 151 rows but only 146 unique transaction_ids. This source table must be deduplicated.
-- **Inconsistent Categorical Data:** status has both 'complete' and 'completed'. country has 'GBR' and 'GBRR'. These must be conformed in their respective dimension tables.
-- **Corrupt Timestamps:** status_datetime has out-of-bounds values (2999-01-11). This requires error handling during type conversion.
-- **Orphan Transactions:** 146 unique transactions exist, but only 84 (57.5%) have a status log. This implies over 40% of transactions are "stuck" or the log data is incomplete.
+- transactions has 151 rows but only 146 unique transaction_ids. Analysis reveals:
+  - 1 exact duplicate (all fields identical)
+  - 4 cases of transaction_id reuse (same ID, different amounts/timestamps)
+  - This suggests a data integrity issue where IDs were incorrectly reused for different transactions
+- transaction_status_log contains 1 exact duplicate
+- status has both 'complete' and 'completed'. country has 'GBR' and 'GBRR'.
+- status_datetime has 1 out-of-bounds value (year 2999).
+
+**Potential Additional Metrics:**
+
+The current implementation includes three core business metrics (CTO by country, system timeliness, processing efficiency). Analysis of the dataset reveals several additional metrics that could provide business value:
+
+- **Decline Analysis:** Track decline rates
+- **Time to First Approval:** Monitor approval latency from transaction creation
+- **Customer Lifetime Value:** Aggregate customer behavior metrics
+- **Hold Rate by Transaction Amount:** Identify patterns in fraud/risk holds
+- **Conversion Funnel Metrics:** Track drop-off rates between status stages
 
 **Optimisation:**
-
-- **Read:** The fct_transaction_status table should be partitioned by date and clustered by customer_key and status_key for fast analytical queries.
-- **Write:** Data should be loaded incrementally into staging tables first, then transformed in parallel into the final dimensional model.
+- **Layered Architecture:** Staging (light transformations) → Intermediate (business logic like deduplication) → Marts (dimensions, facts, metrics). Each layer has a clear purpose.
+- **Read Performance:** In production, fct_transaction_status should be partitioned by date_key and clustered by customer_id and status_name for fast analytical queries.
+- **Write Performance:** Incremental loading strategy recommended for production (8M daily transactions), processing only new/changed records.
 
 **Documentation:**
 
-- Schema tests for data quality (uniqueness, not null, referential integrity)
+- 37 schema tests for data quality (uniqueness, not null, referential integrity, accepted values)
 - Model descriptions and column-level documentation in schema.yml files
-- dbt docs for interactive lineage and documentation site
+- dbt docs generate for interactive lineage and documentation site
 
 ---
 
@@ -81,15 +85,17 @@ My EDA uncovered several critical data quality issues that must be resolved duri
 ```
 payment_processor_ae/
 ├── models/
-│   ├── staging/          # Data cleaning (3 views)
-│   └── marts/            # Business logic layer
-│       ├── dimensions/   # Dimension tables (3 tables)
-│       └── facts/        # Fact table (1 table)
+│   ├── staging/          # Light transformations (3 views)
+│   ├── intermediate/     # Business logic (1 view: deduplication)
+│   └── marts/            # Analytics layer
+│       ├── dimensions/   # Dimension tables (2 tables)
+│       ├── facts/        # Fact table (1 table)
+│       └── metrics/      # Business metrics (3 tables)
 ├── seeds/                # Source CSV data
 ├── notebooks/            # EDA
 ├── dbt_project.yml
 ├── profiles.yml.example
-└── packages.yml
+└── README.md
 ```
 
 ### Running the Project
@@ -109,19 +115,19 @@ uv run dbt docs generate
 
 ### Results
 - 3 seeds loaded (customers, transactions, transaction_status_log)
-- 7 models built (3 staging views, 4 mart tables)
-- 34 data quality tests (100% passing)
-- All EDA issues resolved:
-  - Transaction deduplication (151→146 records)
-  - Status normalization (complete→completed)
-  - Country code standardization (GBRR→GBR)
-  - Invalid timestamp filtering (3 records removed)
-
-### Key Features
-- Star schema with natural keys (no unnecessary surrogate keys)
-- Time-between-steps calculation using LAG window function
-- Terminal status classification for funnel analysis
-- Complete referential integrity enforcement
+- 10 models built:
+  - 3 staging views (light transformations only)
+  - 1 intermediate view (transaction deduplication logic)
+  - 2 dimension tables (customer, status)
+  - 1 fact table (transaction status events)
+  - 3 metric tables (CTO by country, system timeliness, processing efficiency)
+- 37 data quality tests (100% passing)
+- Data quality issues resolved:
+  - Transaction deduplication: 151→146 records (1 exact duplicate + 4 reused IDs)
+  - Status deduplication: 246→244 records (1 exact duplicate + 1 corrupt timestamp)
+  - Status normalization: 'complete' standardised to 'completed'
+  - Country code standardization: 'GBRR' corrected to 'GBR'
+  - Invalid timestamp filtering: 1 record with year 2999 removed
 
 ### Production Considerations
 Seeds are used for this exercise (small static datasets). In production with 8M daily transactions, this would use external tables or incremental loading from a data lake/warehouse.

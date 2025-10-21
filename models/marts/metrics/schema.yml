@@ -1,0 +1,69 @@
+version: 2
+
+models:
+  - name: cto_by_country
+    description: |
+      Customer Transaction Obligation (CTO) metrics by country.
+      Shows total approved transaction amounts by country.
+      CTO represents the first approved amount per transaction.
+    columns:
+      - name: country_code
+        description: Customer country code (ISO 3166-1 alpha-3)
+        tests:
+          - not_null
+      - name: approved_transaction_count
+        description: Count of approved transactions (first approval only)
+        tests:
+          - not_null
+      - name: cto_amount
+        description: Total amount from approved transactions
+        tests:
+          - not_null
+      - name: avg_transaction_amount
+        description: Average transaction amount for approved transactions
+      - name: pct_of_total_cto
+        description: Percentage of total CTO amount represented by this country
+
+  - name: system_timeliness
+    description: |
+      System timeliness metrics measuring average time from approved to completed status.
+      Includes various statistical measures (mean, median, percentiles) in multiple time units.
+    columns:
+      - name: completed_transaction_count
+        description: Number of transactions that reached both approved and completed status
+        tests:
+          - not_null
+      - name: avg_time_to_complete_sec
+        description: Average time to complete in seconds
+      - name: avg_time_to_complete_min
+        description: Average time to complete in minutes
+      - name: avg_time_to_complete_hours
+        description: Average time to complete in hours
+      - name: min_time_to_complete_sec
+        description: Minimum time to complete in seconds
+      - name: max_time_to_complete_sec
+        description: Maximum time to complete in seconds
+      - name: median_time_to_complete_sec
+        description: Median time to complete in seconds (50th percentile)
+      - name: p95_time_to_complete_sec
+        description: 95th percentile time to complete in seconds
+
+  - name: processing_efficiency
+    description: |
+      Processing efficiency metrics showing the percentage of approved transactions
+      that settled without being put on hold. Higher percentages indicate smoother processing.
+    columns:
+      - name: total_approved_and_settled
+        description: Total count of transactions that were both approved and settled
+        tests:
+          - not_null
+      - name: clean_settlements
+        description: Count of transactions that settled without holds after approval
+        tests:
+          - not_null
+      - name: settlements_with_holds
+        description: Count of transactions that had holds between approval and settlement
+      - name: clean_settlement_pct
+        description: Percentage of settlements without holds
+      - name: hold_settlement_pct
+        description: Percentage of settlements that experienced holds

@@ -11,7 +11,6 @@ with source_data as (
 cleaned as (
     select
         transaction_id,
-        -- Normalize status values: complete -> completed
         case 
             when lower(status) = 'complete' then 'completed'
             else lower(status)
@@ -31,4 +30,9 @@ valid_records as (
     where status_datetime is not null  -- Only keep records with valid timestamps
 )
 
-select * from valid_records
+-- Remove exact duplicate rows (data quality issue in source)
+select distinct
+    transaction_id,
+    status,
+    status_datetime
+from valid_records

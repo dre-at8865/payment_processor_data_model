@@ -10,12 +10,9 @@ models:
           - not_null
       
       - name: date_key
-        description: "Foreign key to dim_date (date of status change)"
+        description: "Date of status change (derived from status_datetime)"
         tests:
           - not_null
-          - relationships:
-              to: ref('dim_date')
-              field: date_key
       
       - name: customer_id
         description: "Foreign key to dim_customer"
@@ -38,15 +35,7 @@ models:
         tests:
           - not_null
       
-      - name: time_from_previous_status_sec
-        description: "Time elapsed from previous status in seconds (null for first status)"
-      
       - name: status_datetime
         description: "Timestamp of status event"
-        tests:
-          - not_null
-      
-      - name: row_num
-        description: "Row number for handling duplicate timestamps (ensures uniqueness)"
         tests:
           - not_null
