@@ -108,10 +108,16 @@ payment_processor_ae/
 └── README.md
 ```
 
+
 ### Running the Project
 ```bash
 # Setup
 cp profiles.yml.example profiles.yml
+
+# Install uv if not already installed
+pip install uv
+
+# Install dbt-duckdb
 uv add dbt-duckdb
 
 # Build
