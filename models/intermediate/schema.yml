@@ -2,12 +2,10 @@ version: 2
 
 models:
   - name: int_transactions_deduplicated
-    description: |
-      Deduplicated transactions using business rule: keep earliest transaction_datetime.
-      Removes 5 duplicate transaction_ids from staging (151 → 146 unique transactions).
+    description: "Deduplicated transactions using business rule: keep earliest transaction_datetime"
     columns:
       - name: transaction_id
-        description: "Unique transaction identifier after deduplication"
+        description: "Unique transaction identifier"
         tests:
           - unique
           - not_null
@@ -23,6 +21,6 @@ models:
           - not_null
       
       - name: transaction_datetime
-        description: "Transaction timestamp (earliest for duplicate IDs)"
+        description: "Transaction timestamp"
         tests:
           - not_null

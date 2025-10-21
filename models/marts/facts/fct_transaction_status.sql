@@ -1,6 +1,12 @@
 {{
     config(
-        materialized='table'
+        materialized='table',
+        -- Production optimisation: partition by date_key, cluster by customer_id and status_name
+        -- For Snowflake:
+        -- cluster_by=['date_key', 'customer_id', 'status_name']
+        -- For BQ:
+        -- partition_by={'field': 'date_key', 'data_type': 'date'}
+        -- cluster_by=['customer_id', 'status_name']
     )
 }}
 

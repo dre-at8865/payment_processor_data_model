@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: stg_customers
-    description: "Cleaned and standardized customer data from raw source"
+    description: "Cleaned and standardised customer data from raw source"
     columns:
       - name: customer_id
         description: "Unique identifier for customer"
@@ -11,15 +11,15 @@ models:
           - not_null
       
       - name: country_code
-        description: "Standardized country code (GBRR normalized to GBR)"
+        description: "Country code"
         tests:
           - not_null
   
   - name: stg_transactions
-    description: "Cleaned transaction data with standardized types (may contain duplicates)"
+    description: "Cleaned transaction data with standardised types"
     columns:
       - name: transaction_id
-        description: "Transaction identifier (not unique in staging - see int_transactions_deduplicated)"
+        description: "Transaction identifier"
         tests:
           - not_null
       
@@ -42,7 +42,7 @@ models:
           - not_null
   
   - name: stg_transaction_status_log
-    description: "Cleaned status log with normalized statuses and validated timestamps"
+    description: "Cleaned status log with normalised statuses and validated timestamps"
     columns:
       - name: transaction_id
         description: "Reference to transaction"
@@ -50,13 +50,13 @@ models:
           - not_null
       
       - name: status
-        description: "Normalized status value (complete -> completed)"
+        description: "Status value"
         tests:
           - not_null
           - accepted_values:
               values: ['approved', 'settled', 'completed', 'held', 'cancelled', 'failed', 'declined']
       
       - name: status_datetime
-        description: "Valid status change timestamp (corrupt dates filtered out)"
+        description: "Valid status change timestamp"
         tests:
           - not_null

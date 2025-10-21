@@ -5,13 +5,13 @@ models:
     description: "Customer dimension"
     columns:
       - name: customer_id
-        description: "Primary key - unique customer identifier"
+        description: "PK unique customer identifier"
         tests:
           - unique
           - not_null
       
       - name: country_code
-        description: "Standardized country code"
+        description: "Country code"
         tests:
           - not_null
   
@@ -19,7 +19,7 @@ models:
     description: "Status dimension with terminal status indicator"
     columns:
       - name: status_name
-        description: "Primary key - normalized status name"
+        description: "PK status name"
         tests:
           - unique
           - not_null

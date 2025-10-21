@@ -3,12 +3,12 @@ version: 2
 models:
   - name: cto_by_country
     description: |
-      Customer Transaction Obligation (CTO) metrics by country.
+      CTO by country.
       Shows total approved transaction amounts by country.
       CTO represents the first approved amount per transaction.
     columns:
       - name: country_code
-        description: Customer country code (ISO 3166-1 alpha-3)
+        description: Customer country code
         tests:
           - not_null
       - name: approved_transaction_count

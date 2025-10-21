@@ -35,8 +35,14 @@ erDiagram
         decimal transaction_amount
         timestamp status_datetime
     }
-    dim_customer { string customer_id PK }
-    dim_status { string status_name PK }
+    dim_customer {
+        string customer_id PK
+        string country_code
+    }
+    dim_status {
+        string status_name PK
+        boolean is_terminal_status
+    }
 
     fct_transaction_status }|--|| dim_customer : "belongs to"
     fct_transaction_status }|--|| dim_status : "has"
@@ -51,8 +57,7 @@ My EDA uncovered several critical data quality issues that must be resolved duri
 - transactions has 151 rows but only 146 unique transaction_ids. Analysis reveals:
   - 1 exact duplicate (all fields identical)
   - 4 cases of transaction_id reuse (same ID, different amounts/timestamps)
-  - This suggests a data integrity issue where IDs were incorrectly reused for different transactions
-- transaction_status_log contains 1 exact duplicate
+- transaction_status_log contains 1 exact duplicate and 1 malformed timestamp (extra zeros)
 - status has both 'complete' and 'completed'. country has 'GBR' and 'GBRR'.
 - status_datetime has 1 out-of-bounds value (year 2999).
 
@@ -73,7 +78,9 @@ The current implementation includes three core business metrics (CTO by country,
 
 **Documentation:**
 
-- 37 schema tests for data quality (uniqueness, not null, referential integrity, accepted values)
+- 38 schema tests for data quality (uniqueness, not null, referential integrity, accepted values)
+- 1 singular test for invalid timestamp detection with dynamic date boundaries
+- Dynamic timestamp validation: automatically adapts yearly, configurable via `dbt vars`
 - Model descriptions and column-level documentation in schema.yml files
 - dbt docs generate for interactive lineage and documentation site
 
@@ -121,13 +128,82 @@ uv run dbt docs generate
   - 2 dimension tables (customer, status)
   - 1 fact table (transaction status events)
   - 3 metric tables (CTO by country, system timeliness, processing efficiency)
-- 37 data quality tests (100% passing)
-- Data quality issues resolved:
-  - Transaction deduplication: 151→146 records (1 exact duplicate + 4 reused IDs)
-  - Status deduplication: 246→244 records (1 exact duplicate + 1 corrupt timestamp)
-  - Status normalization: 'complete' standardised to 'completed'
-  - Country code standardization: 'GBRR' corrected to 'GBR'
-  - Invalid timestamp filtering: 1 record with year 2999 removed
+- 38 data quality tests (100% passing)
+
 
 ### Production Considerations
-Seeds are used for this exercise (small static datasets). In production with 8M daily transactions, this would use external tables or incremental loading from a data lake/warehouse.
+Seeds are used for this exercise (small static datasets). In production with 8M daily transactions, this would use external tables or incremental loading from a data lake/warehouse. For orchestration, dbt Cloud provides native scheduling and monitoring, or alternatives like Dagster or Airflow can be used for more complex workflows.
+
+---
+
+## Task 3: Data Quality Testing
+
+### Test Coverage
+
+The project implements 38 dbt tests across three categories:
+
+**1. Invalid Timestamp Values**
+- `tests/assert_no_invalid_timestamps.sql` - Detects timestamps outside valid business range
+- Configurable min date (default: 2020-01-01) and automatic max date (current year + 1)
+- `not_null` on all `status_datetime` and `transaction_datetime` columns
+- Staging layer filters invalid timestamps using dynamic boundaries
+
+**2. Missing Values**
+- `not_null` constraints on all primary keys and critical fields
+- Critical fields: transaction_id, customer_id, status_name, transaction_amount, all datetime fields
+
+**3. Duplicates**
+- `unique` constraints on all primary keys and int_transactions_deduplicated.transaction_id
+- Staging uses `DISTINCT` to remove exact duplicates
+- Intermediate layer applies business rule for ID reuse (ROW_NUMBER keeping earliest by timestamp)
+
+**Additional Tests:**
+- Referential Integrity: 3 `relationships` tests ensuring foreign keys exist in dimension tables
+- Accepted Values: 1 test ensuring status_name only contains valid statuses
+
+### Recommended Additional Tests
+
+**Business Logic Tests:**
+1. Transaction Amount Validation: Ensure amounts are positive and within reasonable bounds
+
+2. Status Progression Rules Detect invalid status transitions (e.g., completed before approved). Terminal statuses (completed, cancelled, failed, declined) should not have subsequent status changes
+
+3. Temporal Consistency: Ensure status_datetime is after transaction_datetime
+
+**Data Freshness Tests**:
+- Ensure transaction_datetime is within last 30 days
+- Alert if no new data loaded in last 24 hours
+
+### Monitoring Data Quality Over Time
+
+**Test Execution:**
+- Run tests on every commit (CI/CD): `dbt test`
+- Monitor key metrics: test failure rates, record count deltas, data freshness
+
+**Observability Tools:**
+- dbt Cloud: Built-in test history and scheduling
+- Dagster/Airflow: Orchestration with data quality gates and alerting
+- Elementary: Open-source dbt observability (anomaly detection, lineage)
+
+**Alerting Strategy:**
+- Fail pipeline on critical test failures (referential integrity, null PKs)
+- Alert on volume anomalies (>5% record count change)
+- Track test execution trends via dbt artifacts (`target/run_results.json`)
+
+### Key Edge Cases
+
+**1. Late-Arriving Data**
+- Status updates arriving out of order
+- **Mitigation:** Use processing_timestamp vs event_timestamp for deduplication ordering
+
+**2. Idempotency**
+- Re-running same data should produce identical results
+- **Mitigation:** Add tiebreaker column (e.g., ingestion_id) to ROW_NUMBER for deterministic deduplication
+
+**3. Schema Evolution**
+- New status types (e.g., 'refunded') would break accepted_values test
+- **Mitigation:** Maintain allowed_values in config file, not hardcoded in schema.yml
+
+**4. Regulatory Compliance**
+- GDPR right-to-delete, PCI-DSS data retention
+- **Mitigation:** Soft deletes, audit logging, automated data retention policies
